@@ -795,6 +795,9 @@ pub struct TomlDetailedDependency<P: Clone = String> {
     /// A platform name, like `x86_64-apple-darwin`
     pub target: Option<String>,
 
+    /// isolation
+    pub isolation: Option<bool>,
+
     /// This is here to provide a way to see the "unused manifest keys" when deserializing
     #[serde(skip_serializing)]
     #[serde(flatten)]
@@ -828,6 +831,7 @@ impl<P: Clone> Default for TomlDetailedDependency<P> {
             artifact: Default::default(),
             lib: Default::default(),
             target: Default::default(),
+            isolation: Default::default(),
             _unused_keys: Default::default(),
         }
     }

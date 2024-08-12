@@ -65,6 +65,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Once;
 use std::time::Instant;
+use tracing::instrument;
 
 use self::ConfigValue as CV;
 use crate::core::compiler::rustdoc::RustdocExternMap;
@@ -420,6 +421,7 @@ impl GlobalContext {
     }
 
     /// Gets the path to the `rustc` executable.
+    #[instrument(skip_all)]
     pub fn load_global_rustc(&self, ws: Option<&Workspace<'_>>) -> CargoResult<Rustc> {
         let cache_location = ws.map(|ws| {
             ws.target_dir()
@@ -1734,6 +1736,7 @@ impl GlobalContext {
     ///
     /// This is intended for tools that are rustup proxies. If you need to get
     /// a tool that is not a rustup proxy, use `maybe_get_tool` instead.
+    #[instrument(level = "debug", skip(tool))]
     fn get_tool(&self, tool: Tool, from_config: &Option<ConfigRelativePath>) -> PathBuf {
         let tool_str = tool.as_str();
         self.maybe_get_tool(tool_str, from_config)

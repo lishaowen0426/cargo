@@ -8,6 +8,7 @@ use anyhow::{anyhow, bail, Context as _};
 use glob::glob;
 use itertools::Itertools;
 use tracing::debug;
+use tracing::instrument;
 use url::Url;
 
 use crate::core::compiler::Unit;
@@ -198,6 +199,7 @@ impl<'gctx> Workspace<'gctx> {
     /// This function will construct the entire workspace by determining the
     /// root and all member packages. It will then validate the workspace
     /// before returning it, so `Ok` is only returned for valid workspaces.
+    #[instrument(name = "Workspace_new", skip(gctx))]
     pub fn new(manifest_path: &Path, gctx: &'gctx GlobalContext) -> CargoResult<Workspace<'gctx>> {
         let mut ws = Workspace::new_default(manifest_path.to_path_buf(), gctx);
         ws.target_dir = gctx.target_dir()?;
@@ -679,6 +681,7 @@ impl<'gctx> Workspace<'gctx> {
     /// if some other transient error happens.
     fn find_root(&mut self, manifest_path: &Path) -> CargoResult<Option<PathBuf>> {
         let current = self.packages.load(manifest_path)?;
+        debug!(current_package = ?current, "load current package");
         match current
             .workspace_config()
             .get_ws_root(manifest_path, manifest_path)

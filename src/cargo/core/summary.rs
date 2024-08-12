@@ -10,6 +10,7 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem;
 use std::sync::Arc;
+use tracing::debug;
 
 /// Subset of a `Manifest`. Contains only the most important information about
 /// a package.
@@ -60,7 +61,7 @@ impl fmt::Display for MissingDependencyError {
 }
 
 impl Summary {
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(level = "debug", name = "summary_new", skip_all)]
     pub fn new(
         pkg_id: PackageId,
         dependencies: Vec<Dependency>,
@@ -72,6 +73,7 @@ impl Summary {
         // error, be sure to coordinate that change with either the index
         // schema field or the SummariesCache version.
         for dep in dependencies.iter() {
+            debug!(dep = ?dep, "dependency");
             let dep_name = dep.name_in_toml();
             if dep.is_optional() && !dep.is_transitive() {
                 bail!(

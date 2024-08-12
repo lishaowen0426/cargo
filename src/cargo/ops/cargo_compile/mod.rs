@@ -34,10 +34,11 @@
 //! [`JobQueue`]: crate::core::compiler::job_queue
 //! [`drain_the_queue`]: crate::core::compiler::job_queue
 //! ["Cargo Target"]: https://doc.rust-lang.org/nightly/cargo/reference/cargo-targets.html
-
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
+use tracing::debug;
+use tracing::instrument;
 
 use crate::core::compiler::unit_dependencies::build_unit_dependencies;
 use crate::core::compiler::unit_graph::{self, UnitDep, UnitGraph};
@@ -123,6 +124,7 @@ impl CompileOptions {
 /// Compiles!
 ///
 /// This uses the [`DefaultExecutor`]. To use a custom [`Executor`], see [`compile_with_exec`].
+#[instrument(skip_all)]
 pub fn compile<'a>(ws: &Workspace<'a>, options: &CompileOptions) -> CargoResult<Compilation<'a>> {
     let exec: Arc<dyn Executor> = Arc::new(DefaultExecutor);
     compile_with_exec(ws, options, &exec)

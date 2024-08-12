@@ -22,6 +22,7 @@ use std::collections::hash_map::{Entry, HashMap};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::{self, FromStr};
+use tracing::debug;
 
 /// Information about the platform target gleaned from querying rustc.
 ///
@@ -869,13 +870,14 @@ pub struct RustcTargetData<'gctx> {
 }
 
 impl<'gctx> RustcTargetData<'gctx> {
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "RustcTargetData_new", skip_all)]
     pub fn new(
         ws: &Workspace<'gctx>,
         requested_kinds: &[CompileKind],
     ) -> CargoResult<RustcTargetData<'gctx>> {
         let gctx = ws.gctx();
         let rustc = gctx.load_global_rustc(Some(ws))?;
+        //debug!(rustc = ?rustc, "global rustc");
         let mut target_config = HashMap::new();
         let mut target_info = HashMap::new();
         let target_applies_to_host = gctx.target_applies_to_host()?;

@@ -4,6 +4,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::{self, FromStr};
+use tracing::debug;
 
 use crate::core::summary::MissingDependencyError;
 use crate::AlreadyPrintedError;
@@ -54,7 +55,7 @@ pub fn is_embedded(path: &Path) -> bool {
 /// within the manifest. For virtual manifests, these paths can only
 /// come from patched or replaced dependencies. These paths are not
 /// canonicalized.
-#[tracing::instrument(skip(gctx))]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn read_manifest(
     path: &Path,
     source_id: SourceId,
@@ -65,10 +66,13 @@ pub fn read_manifest(
 
     let contents =
         read_toml_string(path, gctx).map_err(|err| ManifestError::new(err, path.into()))?;
+    debug!(content = contents, "toml_string");
     let document =
         parse_document(&contents).map_err(|e| emit_diagnostic(e.into(), &contents, path, gctx))?;
     let original_toml = deserialize_toml(&document)
         .map_err(|e| emit_diagnostic(e.into(), &contents, path, gctx))?;
+
+    //debug!(original_toml = ?original_toml, "parsed original toml");
 
     let mut manifest = (|| {
         let empty = Vec::new();

@@ -130,6 +130,7 @@ pub fn resolve(
     resolve_version: ResolveVersion,
     gctx: Option<&GlobalContext>,
 ) -> CargoResult<Resolve> {
+    debug!(summaries = ?summaries, "resolve summaries");
     let first_version = match gctx {
         Some(config) if config.cli_unstable().direct_minimal_versions => {
             Some(VersionOrdering::MinimumVersionsFirst)
