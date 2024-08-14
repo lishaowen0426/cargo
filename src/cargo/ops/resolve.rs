@@ -267,7 +267,7 @@ pub fn resolve_ws_with_opts<'gctx>(
     })
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "debug", skip_all)]
 fn resolve_with_registry<'gctx>(
     ws: &Workspace<'gctx>,
     registry: &mut PackageRegistry<'gctx>,
@@ -320,7 +320,7 @@ fn resolve_with_registry<'gctx>(
 ///
 /// If `register_patches` is true, then entries from the `[patch]` table in
 /// the manifest will be added to the given `PackageRegistry`.
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn resolve_with_previous<'gctx>(
     registry: &mut PackageRegistry<'gctx>,
     ws: &Workspace<'gctx>,
@@ -403,6 +403,7 @@ pub fn resolve_with_previous<'gctx>(
         ws.members_with_features(specs, cli_features)?
             .into_iter()
             .map(|(member, features)| {
+                debug!(name = ?(member.package_id()),member = ?(member.dependencies()), "member dependencies: ");
                 let summary = registry.lock(member.summary().clone());
                 (
                     summary,

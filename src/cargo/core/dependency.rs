@@ -49,6 +49,8 @@ struct Inner {
     // This dependency should be used only for this platform.
     // `None` means *all platforms*.
     platform: Option<Platform>,
+
+    isolation: bool,
 }
 
 #[derive(Serialize)]
@@ -178,6 +180,7 @@ impl Dependency {
                 platform: None,
                 explicit_name_in_toml: None,
                 artifact: None,
+                isolation: false,
             }),
         }
     }
@@ -260,6 +263,11 @@ impl Dependency {
             assert_eq!(self.kind(), DepKind::Normal);
         }
         Arc::make_mut(&mut self.inner).public = public;
+        self
+    }
+
+    pub fn set_isolation(&mut self, isolation: bool) -> &mut Dependency {
+        Arc::make_mut(&mut self.inner).isolation = isolation;
         self
     }
 

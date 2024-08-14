@@ -121,7 +121,7 @@ mod version_prefs;
 ///
 /// * `config` - a location to print warnings and such, or `None` if no warnings
 ///   should be printed
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn resolve(
     summaries: &[(Summary, ResolveOpts)],
     replacements: &[(PackageIdSpec, Dependency)],

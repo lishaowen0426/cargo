@@ -1089,7 +1089,7 @@ fn deprecated_ws_default_features(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "debug", skip_all)]
 fn to_real_manifest(
     contents: String,
     document: toml_edit::ImDocument<String>,
@@ -1103,6 +1103,10 @@ fn to_real_manifest(
     warnings: &mut Vec<String>,
     _errors: &mut Vec<String>,
 ) -> CargoResult<Manifest> {
+    debug!(
+        manifest_file = manifest_file.to_str().unwrap(),
+        "manifest path: "
+    );
     let embedded = is_embedded(manifest_file);
     let package_root = manifest_file.parent().unwrap();
     if !package_root.is_dir() {
@@ -2008,6 +2012,11 @@ fn detailed_dep_to_dependency<P: ResolveToPath + Clone>(
 
     let version = orig.version.as_deref();
     let mut dep = Dependency::parse(pkg_name, version, new_source_id)?;
+
+    if let Some(isolation) = orig.isolation {
+        dep.set_isolation(isolation);
+    }
+
     dep.set_features(orig.features.iter().flatten())
         .set_default_features(orig.default_features().unwrap_or(true))
         .set_optional(orig.optional.unwrap_or(false))

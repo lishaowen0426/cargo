@@ -650,6 +650,7 @@ impl<'gctx> Workspace<'gctx> {
         self.custom_metadata.as_ref()
     }
 
+    #[instrument(level = "debug", skip_all)]
     pub fn load_workspace_config(&mut self) -> CargoResult<Option<WorkspaceRootConfig>> {
         // If we didn't find a root, it must mean there is no [workspace] section, and thus no
         // metadata.
@@ -679,6 +680,7 @@ impl<'gctx> Workspace<'gctx> {
     ///
     /// Returns an error if `manifest_path` isn't actually a valid manifest or
     /// if some other transient error happens.
+    #[instrument(level = "debug", skip(self))]
     fn find_root(&mut self, manifest_path: &Path) -> CargoResult<Option<PathBuf>> {
         let current = self.packages.load(manifest_path)?;
         debug!(current_package = ?current, "load current package");
@@ -1722,6 +1724,7 @@ impl<'gctx> Packages<'gctx> {
         self.packages.get_mut(manifest_path.parent().unwrap())
     }
 
+    #[instrument(level = "debug", skip(self))]
     fn load(&mut self, manifest_path: &Path) -> CargoResult<&MaybePackage> {
         let key = manifest_path.parent().unwrap();
         match self.packages.entry(key.to_path_buf()) {
