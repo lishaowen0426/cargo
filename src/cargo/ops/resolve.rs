@@ -344,6 +344,10 @@ pub fn resolve_with_previous<'gctx>(
 
     // In case any members were not already loaded or the Workspace is_ephemeral.
     for member in ws.members() {
+        debug!(
+            manifest_path = member.manifest_path().to_str().unwrap(),
+            "add member source: "
+        );
         registry.add_sources(Some(member.package_id().source_id()))?;
     }
 
@@ -379,7 +383,7 @@ pub fn resolve_with_previous<'gctx>(
     let dev_deps = ws.require_optional_deps() || has_dev_units == HasDevUnits::Yes;
 
     if let Some(r) = previous {
-        trace!("previous: {:?}", r);
+        debug!("previous: {:?}", r);
 
         // In the case where a previous instance of resolve is available, we
         // want to lock as many packages as possible to the previous version
@@ -403,8 +407,8 @@ pub fn resolve_with_previous<'gctx>(
         ws.members_with_features(specs, cli_features)?
             .into_iter()
             .map(|(member, features)| {
-                debug!(name = ?(member.package_id()),member = ?(member.dependencies()), "member dependencies: ");
                 let summary = registry.lock(member.summary().clone());
+                //debug!(summary = ?summary, "package summary");
                 (
                     summary,
                     ResolveOpts {

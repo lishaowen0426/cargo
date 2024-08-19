@@ -8,7 +8,7 @@ use crate::util::Graph;
 use anyhow::format_err;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 // A `Context` is basically a bunch of local resolution information which is
 // kept around for all `BacktrackFrame` instances. As a result, this runs the
@@ -88,6 +88,7 @@ impl ResolverContext {
     /// crate, for example.
     ///
     /// Returns `true` if this summary with the given features is already activated.
+    #[instrument(level = "debug", skip_all)]
     pub fn flag_activated(
         &mut self,
         summary: &Summary,
@@ -144,6 +145,8 @@ impl ResolverContext {
                         }
                     }
                 }
+
+                debug!("initial activation: {}", id);
 
                 return Ok(false);
             }

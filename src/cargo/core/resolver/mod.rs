@@ -63,7 +63,7 @@ use std::mem;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 
 use crate::core::PackageIdSpec;
 use crate::core::{Dependency, PackageId, Registry, Summary};
@@ -130,7 +130,7 @@ pub fn resolve(
     resolve_version: ResolveVersion,
     gctx: Option<&GlobalContext>,
 ) -> CargoResult<Resolve> {
-    debug!(summaries = ?summaries, "resolve summaries");
+    //debug!(summaries = ?summaries, "resolve summaries");
     let first_version = match gctx {
         Some(config) if config.cli_unstable().direct_minimal_versions => {
             Some(VersionOrdering::MinimumVersionsFirst)
@@ -189,6 +189,7 @@ pub fn resolve(
 ///
 /// If all dependencies can be activated and resolved to a version in the
 /// dependency graph, `cx` is returned.
+#[instrument(level = "debug", skip_all)]
 fn activate_deps_loop(
     mut resolver_ctx: ResolverContext,
     registry: &mut RegistryQueryer<'_>,
@@ -619,6 +620,7 @@ fn activate_deps_loop(
 /// the dependencies of the package will be determined by the `opts` provided.
 /// If `candidate` was activated, this function returns the dependency frame to
 /// iterate through next.
+#[instrument(level = "debug", skip_all)]
 fn activate(
     cx: &mut ResolverContext,
     registry: &mut RegistryQueryer<'_>,
@@ -627,6 +629,11 @@ fn activate(
     first_version: Option<VersionOrdering>,
     opts: &ResolveOpts,
 ) -> ActivateResult<Option<(DepsFrame, Duration)>> {
+    debug!(
+        "activate_package_name {}, parent {:?}",
+        candidate.name(),
+        parent
+    );
     let candidate_pid = candidate.package_id();
     cx.age += 1;
     if let Some((parent, dep)) = parent {

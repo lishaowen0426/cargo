@@ -27,7 +27,7 @@ use anyhow::Context as _;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::rc::Rc;
 use std::task::Poll;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 pub struct RegistryQueryer<'a> {
     pub registry: &'a mut (dyn Registry + 'a),
@@ -221,6 +221,7 @@ impl<'a> RegistryQueryer<'a> {
     /// with features described in `opts`. Then look up in the `registry`
     /// the candidates that will fulfil each of these dependencies, as it is the
     /// next obvious question.
+    #[instrument(level = "debug", skip_all)]
     pub fn build_deps(
         &mut self,
         cx: &ResolverContext,

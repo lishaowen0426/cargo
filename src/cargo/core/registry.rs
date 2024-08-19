@@ -23,7 +23,7 @@ use crate::util::errors::CargoResult;
 use crate::util::interning::InternedString;
 use crate::util::{CanonicalUrl, GlobalContext};
 use anyhow::{bail, Context as _};
-use tracing::{debug, trace};
+use tracing::{debug, instrument, trace};
 use url::Url;
 
 /// An abstraction provides a set of methods for querying source information
@@ -519,6 +519,7 @@ impl<'gctx> PackageRegistry<'gctx> {
 
     /// Loads the [`Source`] for a given [`SourceId`] to this registry, making
     /// them available to resolution.
+    #[instrument(level = "debug", skip_all)]
     fn load(&mut self, source_id: SourceId, kind: Kind) -> CargoResult<()> {
         debug!("loading source {}", source_id);
         let source = self
