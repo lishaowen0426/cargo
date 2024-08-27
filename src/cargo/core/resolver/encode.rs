@@ -135,6 +135,8 @@ pub struct EncodableResolve {
     metadata: Option<Metadata>,
     #[serde(default, skip_serializing_if = "Patch::is_empty")]
     patch: Patch,
+
+    isolation: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -412,6 +414,10 @@ impl EncodableResolve {
             unused_patches,
             version,
             HashMap::new(),
+            match self.isolation.as_ref() {
+                Some(m) => m.iter().map(|id| id.clone()).collect(),
+                None => HashSet::new(),
+            },
         ));
 
         fn get_source_id<'a>(
@@ -611,6 +617,12 @@ pub struct EncodablePackageId {
     source: Option<EncodableSourceId>,
 }
 
+impl EncodablePackageId {
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+}
+
 impl fmt::Display for EncodablePackageId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)?;
@@ -726,6 +738,12 @@ impl ser::Serialize for Resolve {
                 })
                 .collect(),
         };
+
+        let mut isolations: Vec<String> = Vec::new();
+        self.isolations().iter().for_each(|p| {
+            isolations.push(p.clone());
+        });
+
         EncodableResolve {
             package: Some(encodable),
             root: None,
@@ -737,6 +755,7 @@ impl ser::Serialize for Resolve {
                 ResolveVersion::V3 => Some(3),
                 ResolveVersion::V2 | ResolveVersion::V1 => None,
             },
+            isolation: Some(isolations),
         }
         .serialize(s)
     }

@@ -54,6 +54,8 @@ pub struct TomlManifest {
     pub badges: Option<BTreeMap<String, BTreeMap<String, String>>>,
     pub lints: Option<InheritableLints>,
 
+    pub isolation: Option<BTreeMap<PackageName, TomlIsolation>>,
+
     /// Report unused keys (see also nested `_unused_keys`)
     /// Note: this is populated by the caller, rather than automatically
     #[serde(skip)]
@@ -795,9 +797,6 @@ pub struct TomlDetailedDependency<P: Clone = String> {
     /// A platform name, like `x86_64-apple-darwin`
     pub target: Option<String>,
 
-    /// isolation
-    pub isolation: Option<bool>,
-
     /// This is here to provide a way to see the "unused manifest keys" when deserializing
     #[serde(skip_serializing)]
     #[serde(flatten)]
@@ -831,7 +830,6 @@ impl<P: Clone> Default for TomlDetailedDependency<P> {
             artifact: Default::default(),
             lib: Default::default(),
             target: Default::default(),
-            isolation: Default::default(),
             _unused_keys: Default::default(),
         }
     }
@@ -1692,3 +1690,7 @@ impl<'de> de::Deserialize<'de> for PathValue {
 #[error("manifest field was not resolved")]
 #[non_exhaustive]
 pub struct UnresolvedError;
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct TomlIsolation {}

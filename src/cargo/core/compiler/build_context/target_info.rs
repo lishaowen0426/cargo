@@ -22,7 +22,6 @@ use std::collections::hash_map::{Entry, HashMap};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::{self, FromStr};
-use tracing::debug;
 
 /// Information about the platform target gleaned from querying rustc.
 ///

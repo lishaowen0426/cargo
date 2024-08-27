@@ -80,7 +80,7 @@ use crate::util::CanonicalUrl;
 use anyhow::Context as _;
 use cargo_util::paths;
 use std::collections::{HashMap, HashSet};
-use tracing::{debug, trace};
+use tracing::debug;
 
 /// Filter for keep using Package ID from previous lockfile.
 type Keep<'a> = &'a dyn Fn(&PackageId) -> bool;
@@ -274,6 +274,7 @@ fn resolve_with_registry<'gctx>(
     dry_run: bool,
 ) -> CargoResult<Resolve> {
     let prev = ops::load_pkg_lockfile(ws)?;
+    //let prev = None;
     let mut resolve = resolve_with_previous(
         registry,
         ws,

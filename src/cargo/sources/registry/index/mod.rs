@@ -32,8 +32,8 @@ use cargo_util_schemas::manifest::RustVersion;
 use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
-use std::collections::BTreeMap;
 use std::collections::HashMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::Path;
 use std::str;
 use std::task::{ready, Poll};
@@ -736,7 +736,8 @@ impl IndexSummary {
                 features.entry(name).or_default().extend(values);
             }
         }
-        let mut summary = Summary::new(pkgid, deps, &features, links, rust_version)?;
+        let mut summary =
+            Summary::new(pkgid, deps, &features, links, rust_version, HashSet::new())?;
         summary.set_checksum(cksum);
 
         let v_max = if bindeps {

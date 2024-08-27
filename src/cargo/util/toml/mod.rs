@@ -11,7 +11,7 @@ use crate::AlreadyPrintedError;
 use anyhow::{anyhow, bail, Context as _};
 use cargo_platform::Platform;
 use cargo_util::paths::{self, normalize_path};
-use cargo_util_schemas::manifest::{self, TomlManifest};
+use cargo_util_schemas::manifest::{self, TomlIsolation, TomlManifest};
 use cargo_util_schemas::manifest::{RustVersion, StringOrBool};
 use itertools::Itertools;
 use lazycell::LazyCell;
@@ -304,6 +304,7 @@ fn normalize_toml(
         workspace: original_toml.workspace.clone(),
         badges: None,
         lints: None,
+        isolation: None,
         _unused_keys: Default::default(),
     };
 
@@ -329,6 +330,8 @@ fn normalize_toml(
         normalized_toml.package = Some(normalized_package);
 
         normalized_toml.features = normalize_features(original_toml.features.as_ref())?;
+
+        normalized_toml.isolation = normalize_isolation(original_toml.isolation.as_ref())?;
 
         normalized_toml.lib = targets::normalize_lib(
             original_toml.lib.as_ref(),
@@ -705,6 +708,16 @@ fn normalize_features(
     Ok(Some(normalized_features))
 }
 
+#[tracing::instrument(skip_all)]
+fn normalize_isolation(
+    original_isolation: Option<&BTreeMap<manifest::PackageName, manifest::TomlIsolation>>,
+) -> CargoResult<Option<BTreeMap<manifest::PackageName, manifest::TomlIsolation>>> {
+    let Some(normalized_isolation) = original_isolation.cloned() else {
+        return Ok(None);
+    };
+
+    Ok(Some(normalized_isolation))
+}
 #[tracing::instrument(skip_all)]
 fn normalize_dependencies<'a>(
     gctx: &GlobalContext,
@@ -1357,6 +1370,7 @@ fn to_real_manifest(
     }
     let replace = replace(&normalized_toml, &mut manifest_ctx)?;
     let patch = patch(&normalized_toml, &mut manifest_ctx)?;
+    let isolation = isolation(&normalized_toml, &mut manifest_ctx)?;
 
     {
         let mut names_sources = BTreeMap::new();
@@ -1485,6 +1499,7 @@ fn to_real_manifest(
                 .collect(),
             normalized_package.links.as_deref(),
             rust_version.clone(),
+            isolation.keys().cloned().collect(),
         );
         // editon2024 stops exposing implicit features, which will strip weak optional dependencies from `dependencies`,
         // need to check whether `dep_name` is stripped as unused dependency
@@ -1577,6 +1592,7 @@ fn to_real_manifest(
         resolve_behavior,
         rustflags,
         embedded,
+        isolation,
     );
     if manifest
         .normalized_toml()
@@ -1884,6 +1900,18 @@ fn patch(
     Ok(patch)
 }
 
+fn isolation(
+    me: &manifest::TomlManifest,
+    _manifest_ctx: &mut ManifestContext<'_, '_>,
+) -> CargoResult<BTreeMap<String, TomlIsolation>> {
+    let mut result = BTreeMap::new();
+    if let Some(original_isolation) = me.isolation.as_ref() {
+        original_isolation.iter().for_each(|(k, v)| {
+            result.insert(k.to_string(), v.clone());
+        });
+    };
+    return Ok(result);
+}
 pub(crate) fn to_dependency<P: ResolveToPath + Clone>(
     dep: &manifest::TomlDependency<P>,
     name: &str,
@@ -2012,10 +2040,6 @@ fn detailed_dep_to_dependency<P: ResolveToPath + Clone>(
 
     let version = orig.version.as_deref();
     let mut dep = Dependency::parse(pkg_name, version, new_source_id)?;
-
-    if let Some(isolation) = orig.isolation {
-        dep.set_isolation(isolation);
-    }
 
     dep.set_features(orig.features.iter().flatten())
         .set_default_features(orig.default_features().unwrap_or(true))
@@ -2799,6 +2823,7 @@ fn prepare_toml_for_publish(
         badges: me.badges.clone(),
         cargo_features: me.cargo_features.clone(),
         lints: me.lints.clone(),
+        isolation: None,
         _unused_keys: Default::default(),
     };
     strip_features(&mut manifest);

@@ -185,6 +185,21 @@ fn serialize_resolve(resolve: &Resolve, orig: Option<&str>) -> String {
         out.push_str(&meta_doc.to_string());
     }
 
+    if let Some(isolation) = toml.get("isolation") {
+        let entries = isolation.as_array().unwrap();
+        out.push('\n');
+        if !entries.is_empty() {
+            out.push_str("isolation = [\n");
+
+            for child in entries.iter() {
+                out.push_str(&format!(" {},\n", child));
+            }
+
+            out.push_str("]\n");
+        }
+        out.push('\n');
+    }
+
     // Historical versions of Cargo in the old format accidentally left trailing
     // blank newlines at the end of files, so we just leave that as-is. For all
     // encodings going forward, though, we want to be sure that our encoded lock

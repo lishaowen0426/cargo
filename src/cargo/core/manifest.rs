@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use cargo_util_schemas::manifest::RustVersion;
-use cargo_util_schemas::manifest::{TomlManifest, TomlProfiles};
+use cargo_util_schemas::manifest::{TomlIsolation, TomlManifest, TomlProfiles};
 use semver::Version;
 use serde::ser;
 use serde::Serialize;
@@ -90,6 +90,7 @@ pub struct Manifest {
     resolve_behavior: Option<ResolveBehavior>,
     lint_rustflags: Vec<String>,
     embedded: bool,
+    isolation: BTreeMap<String, TomlIsolation>,
 }
 
 /// When parsing `Cargo.toml`, some warnings should silenced
@@ -446,6 +447,7 @@ impl Manifest {
         resolve_behavior: Option<ResolveBehavior>,
         lint_rustflags: Vec<String>,
         embedded: bool,
+        isolation: BTreeMap<String, TomlIsolation>,
     ) -> Manifest {
         Manifest {
             contents,
@@ -476,6 +478,7 @@ impl Manifest {
             resolve_behavior,
             lint_rustflags,
             embedded,
+            isolation,
         }
     }
 

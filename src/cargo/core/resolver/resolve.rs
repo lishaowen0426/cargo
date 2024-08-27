@@ -47,6 +47,8 @@ pub struct Resolve {
     /// `cargo::core::resolver::encode` for more.
     version: ResolveVersion,
     summaries: HashMap<PackageId, Summary>,
+
+    isolation: HashSet<String>,
 }
 
 /// A version to indicate how a `Cargo.lock` should be serialized.
@@ -164,6 +166,7 @@ impl Resolve {
         unused_patches: Vec<PackageId>,
         version: ResolveVersion,
         summaries: HashMap<PackageId, Summary>,
+        isolation: HashSet<String>,
     ) -> Resolve {
         let reverse_replacements = replacements.iter().map(|(&p, &r)| (r, p)).collect();
         let public_dependencies = graph
@@ -193,6 +196,7 @@ impl Resolve {
             public_dependencies,
             version,
             summaries,
+            isolation,
         }
     }
 
@@ -361,6 +365,10 @@ unable to verify that `{0}` is the same as when the lockfile was generated
         &self.replacements
     }
 
+    pub fn isolations(&self) -> &HashSet<String> {
+        &self.isolation
+    }
+
     pub fn features(&self, pkg: PackageId) -> &[InternedString] {
         self.features.get(&pkg).map(|v| &**v).unwrap_or(&[])
     }
@@ -476,7 +484,7 @@ impl PartialEq for Resolve {
         compare! {
             // fields to compare
             graph replacements reverse_replacements features
-            checksums metadata unused_patches public_dependencies summaries
+            checksums metadata unused_patches public_dependencies summaries isolation
             |
             // fields to ignore
             version

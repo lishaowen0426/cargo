@@ -37,7 +37,6 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
-use tracing::debug;
 use tracing::instrument;
 
 use crate::core::compiler::unit_dependencies::build_unit_dependencies;

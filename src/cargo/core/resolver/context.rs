@@ -6,7 +6,8 @@ use crate::core::{Dependency, PackageId, SourceId, Summary};
 use crate::util::interning::InternedString;
 use crate::util::Graph;
 use anyhow::format_err;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 use std::num::NonZeroU64;
 use tracing::{debug, instrument};
 
@@ -26,6 +27,8 @@ pub struct ResolverContext {
     /// a way to look up for a package in activations what packages required it
     /// and all of the exact deps that it fulfilled.
     pub parents: Graph<PackageId, im_rc::HashSet<Dependency>>,
+
+    pub isolation: HashSet<String>,
 }
 
 /// When backtracking it can be useful to know how far back to go.
@@ -78,6 +81,7 @@ impl ResolverContext {
             links: im_rc::HashMap::new(),
             parents: Graph::new(),
             activations: im_rc::HashMap::new(),
+            isolation: HashSet::new(),
         }
     }
 
@@ -230,5 +234,9 @@ impl ResolverContext {
             }
         }
         graph
+    }
+
+    pub fn isolation(&self) -> HashSet<String> {
+        self.isolation.clone()
     }
 }
