@@ -28,7 +28,7 @@ pub struct ResolverContext {
     /// and all of the exact deps that it fulfilled.
     pub parents: Graph<PackageId, im_rc::HashSet<Dependency>>,
 
-    pub isolation: HashSet<String>,
+    pub isolation: HashSet<InternedString>,
 }
 
 /// When backtracking it can be useful to know how far back to go.
@@ -236,7 +236,7 @@ impl ResolverContext {
         graph
     }
 
-    pub fn isolation(&self) -> HashSet<String> {
+    pub fn isolation(&self) -> HashSet<InternedString> {
         self.isolation.clone()
     }
 }

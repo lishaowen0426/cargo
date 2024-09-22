@@ -69,6 +69,7 @@ use crate::core::PackageIdSpec;
 use crate::core::{Dependency, PackageId, Registry, Summary};
 use crate::util::context::GlobalContext;
 use crate::util::errors::CargoResult;
+use crate::util::interning::InternedString;
 use crate::util::network::PollExt;
 
 use self::context::ResolverContext;
@@ -677,7 +678,7 @@ fn activate(
 
     // add isolation to resolver_ctx
     candidate.isolations().iter().for_each(|p| {
-        cx.isolation.insert(p.clone());
+        cx.isolation.insert(InternedString::from(p));
     });
 
     let now = Instant::now();

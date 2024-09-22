@@ -848,6 +848,7 @@ fn new_unit_dep_with_profile(
         _ => None,
     };
     let features = state.activated_features(pkg.package_id(), features_for);
+    let is_isolated = state.resolve().isolations().contains(&pkg.name());
     let unit = state.interner.intern(
         pkg,
         target,
@@ -866,6 +867,7 @@ fn new_unit_dep_with_profile(
         /*dep_hash*/ 0,
         artifact.map_or(IsArtifact::No, |_| IsArtifact::Yes),
         artifact_target,
+        is_isolated,
     );
     Ok(UnitDep {
         unit,

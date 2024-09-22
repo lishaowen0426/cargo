@@ -136,7 +136,7 @@ pub struct EncodableResolve {
     #[serde(default, skip_serializing_if = "Patch::is_empty")]
     patch: Patch,
 
-    isolation: Option<Vec<String>>,
+    isolation: Option<Vec<InternedString>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]
@@ -739,9 +739,9 @@ impl ser::Serialize for Resolve {
                 .collect(),
         };
 
-        let mut isolations: Vec<String> = Vec::new();
+        let mut isolations: Vec<InternedString> = Vec::new();
         self.isolations().iter().for_each(|p| {
-            isolations.push(p.clone());
+            isolations.push(*p);
         });
 
         EncodableResolve {

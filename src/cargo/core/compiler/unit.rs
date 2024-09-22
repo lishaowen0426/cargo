@@ -112,6 +112,9 @@ pub struct UnitInner {
     ///
     /// [`FeaturesFor::ArtifactDep`]: crate::core::resolver::features::FeaturesFor::ArtifactDep
     pub artifact_target_for_features: Option<CompileTarget>,
+
+    /// whether this unit is to be isolated
+    pub is_isolated: bool,
 }
 
 impl UnitInner {
@@ -238,6 +241,7 @@ impl UnitInterner {
         dep_hash: u64,
         artifact: IsArtifact,
         artifact_target_for_features: Option<CompileTarget>,
+        is_isolated: bool,
     ) -> Unit {
         let target = match (is_std, target.kind()) {
             // This is a horrible hack to support build-std. `libstd` declares
@@ -274,6 +278,7 @@ impl UnitInterner {
             dep_hash,
             artifact,
             artifact_target_for_features,
+            is_isolated,
         });
         Unit { inner }
     }

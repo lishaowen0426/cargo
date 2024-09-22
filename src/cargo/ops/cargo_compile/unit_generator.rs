@@ -98,6 +98,8 @@ impl<'a> UnitGenerator<'a, '_> {
             _ => initial_target_mode,
         };
 
+        let is_isolated = self.resolve.isolations().contains(&pkg.name());
+
         let is_local = pkg.package_id().source_id().is_path();
 
         // No need to worry about build-dependencies, roots are never build dependencies.
@@ -178,6 +180,7 @@ impl<'a> UnitGenerator<'a, '_> {
                     /*dep_hash*/ 0,
                     IsArtifact::No,
                     None,
+                    is_isolated,
                 )
             })
             .collect()

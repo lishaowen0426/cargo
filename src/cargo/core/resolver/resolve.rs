@@ -1,5 +1,6 @@
 use cargo_util_schemas::core::PartialVersion;
 use cargo_util_schemas::manifest::RustVersion;
+use time::format_description::well_known::Iso8601;
 
 use super::encode::Metadata;
 use crate::core::dependency::DepKind;
@@ -48,7 +49,7 @@ pub struct Resolve {
     version: ResolveVersion,
     summaries: HashMap<PackageId, Summary>,
 
-    isolation: HashSet<String>,
+    isolation: HashSet<InternedString>,
 }
 
 /// A version to indicate how a `Cargo.lock` should be serialized.
@@ -166,7 +167,7 @@ impl Resolve {
         unused_patches: Vec<PackageId>,
         version: ResolveVersion,
         summaries: HashMap<PackageId, Summary>,
-        isolation: HashSet<String>,
+        isolation: HashSet<InternedString>,
     ) -> Resolve {
         let reverse_replacements = replacements.iter().map(|(&p, &r)| (r, p)).collect();
         let public_dependencies = graph
@@ -365,7 +366,7 @@ unable to verify that `{0}` is the same as when the lockfile was generated
         &self.replacements
     }
 
-    pub fn isolations(&self) -> &HashSet<String> {
+    pub fn isolations(&self) -> &HashSet<InternedString> {
         &self.isolation
     }
 

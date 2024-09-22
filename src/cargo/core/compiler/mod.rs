@@ -124,8 +124,12 @@ pub trait Executor: Send + Sync + 'static {
 
     /// Queried when queuing each unit of work. If it returns true, then the
     /// unit will always be rebuilt, independent of whether it needs to be.
-    fn force_rebuild(&self, _unit: &Unit) -> bool {
-        false
+    fn force_rebuild(&self, unit: &Unit) -> bool {
+        if unit.is_isolated {
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -1185,6 +1189,10 @@ fn build_base_args(
         cmd.arg("-Z")
             .arg("force-unstable-if-unmarked")
             .env("RUSTC_BOOTSTRAP", "1");
+    }
+
+    if unit.is_isolated {
+        cmd.arg("-Z").arg("isolate");
     }
 
     // Add `CARGO_BIN_EXE_` environment variables for building tests.
