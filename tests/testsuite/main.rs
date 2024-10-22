@@ -183,6 +183,8 @@ mod weak_dep_features;
 mod workspaces;
 mod yank;
 
+mod isolate;
+
 use cargo_test_support::prelude::*;
 
 #[cargo_test]

@@ -11,6 +11,8 @@ use crate::util::CargoResult;
 use crate::GlobalContext;
 use std::collections::HashMap;
 use std::io::Write;
+use tracing::debug;
+use tracing::instrument;
 
 /// The dependency graph of Units.
 pub type UnitGraph = HashMap<Unit, Vec<UnitDep>>;
@@ -75,6 +77,7 @@ struct SerializedUnitDep {
 
 /// Outputs a JSON serialization of [`UnitGraph`] for given `root_units`
 /// to the standard output.
+#[instrument(level = "debug", skip_all)]
 pub fn emit_serialized_unit_graph(
     root_units: &[Unit],
     unit_graph: &UnitGraph,
@@ -92,6 +95,10 @@ pub fn emit_serialized_unit_graph(
     let ser_units = units
         .iter()
         .map(|(unit, unit_deps)| {
+            debug!(unit=?(unit.pkg.package_id()), "deps: ");
+            for (idx, ud) in unit_deps.iter().enumerate() {
+                debug!("dep {}: {:?}", idx, ud.unit.pkg.package_id());
+            }
             let dependencies = unit_deps
                 .iter()
                 .map(|unit_dep| {

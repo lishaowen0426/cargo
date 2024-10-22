@@ -4,14 +4,14 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::{self, FromStr};
-use tracing::debug;
+use tracing::{debug, warn};
 
 use crate::core::summary::MissingDependencyError;
 use crate::AlreadyPrintedError;
 use anyhow::{anyhow, bail, Context as _};
 use cargo_platform::Platform;
 use cargo_util::paths::{self, normalize_path};
-use cargo_util_schemas::manifest::{self, TomlIsolation, TomlManifest};
+use cargo_util_schemas::manifest::{self, PackageName, TomlIsolation, TomlManifest};
 use cargo_util_schemas::manifest::{RustVersion, StringOrBool};
 use itertools::Itertools;
 use lazycell::LazyCell;
@@ -67,12 +67,13 @@ pub fn read_manifest(
     let contents =
         read_toml_string(path, gctx).map_err(|err| ManifestError::new(err, path.into()))?;
     debug!(content = contents, "toml_string");
+
     let document =
         parse_document(&contents).map_err(|e| emit_diagnostic(e.into(), &contents, path, gctx))?;
     let original_toml = deserialize_toml(&document)
         .map_err(|e| emit_diagnostic(e.into(), &contents, path, gctx))?;
 
-    //debug!(original_toml = ?original_toml, "parsed original toml");
+    debug!(original_toml = ?original_toml, "parsed original toml");
 
     let mut manifest = (|| {
         let empty = Vec::new();
@@ -94,7 +95,7 @@ pub fn read_manifest(
             &mut warnings,
             &mut errors,
         )?;
-
+        debug!(normalized_toml = ?normalized_toml);
         if normalized_toml.package().is_some() {
             to_real_manifest(
                 contents,
@@ -111,6 +112,9 @@ pub fn read_manifest(
             )
             .map(EitherManifest::Real)
         } else if normalized_toml.workspace.is_some() {
+            if normalized_toml.isolation.is_some() {
+                unreachable!("[isolation] section is not supported in virtual workspace");
+            }
             to_virtual_manifest(
                 contents,
                 document,
@@ -1116,10 +1120,7 @@ fn to_real_manifest(
     warnings: &mut Vec<String>,
     _errors: &mut Vec<String>,
 ) -> CargoResult<Manifest> {
-    debug!(
-        manifest_file = manifest_file.to_str().unwrap(),
-        "manifest path: "
-    );
+    debug!(?manifest_file);
     let embedded = is_embedded(manifest_file);
     let package_root = manifest_file.parent().unwrap();
     if !package_root.is_dir() {
@@ -1499,7 +1500,7 @@ fn to_real_manifest(
                 .collect(),
             normalized_package.links.as_deref(),
             rust_version.clone(),
-            isolation.keys().cloned().collect(),
+            isolation.keys().map(|p| p.to_string()).collect(),
         );
         // editon2024 stops exposing implicit features, which will strip weak optional dependencies from `dependencies`,
         // need to check whether `dep_name` is stripped as unused dependency
@@ -1719,7 +1720,7 @@ fn to_virtual_manifest(
     let root = manifest_file.parent().unwrap();
 
     let mut deps = Vec::new();
-    let (replace, patch) = {
+    let (replace, patch, isolation) = {
         let mut manifest_ctx = ManifestContext {
             deps: &mut deps,
             source_id,
@@ -1731,6 +1732,7 @@ fn to_virtual_manifest(
         (
             replace(&original_toml, &mut manifest_ctx)?,
             patch(&original_toml, &mut manifest_ctx)?,
+            isolation(&original_toml, &mut manifest_ctx)?,
         )
     };
     if let Some(profiles) = &original_toml.profile {
@@ -1755,6 +1757,7 @@ fn to_virtual_manifest(
         workspace_config,
         features,
         resolve_behavior,
+        isolation,
     );
 
     warn_on_unused(&manifest.original_toml()._unused_keys, warnings);
@@ -1903,11 +1906,11 @@ fn patch(
 fn isolation(
     me: &manifest::TomlManifest,
     _manifest_ctx: &mut ManifestContext<'_, '_>,
-) -> CargoResult<BTreeMap<String, TomlIsolation>> {
-    let mut result = BTreeMap::new();
+) -> CargoResult<HashMap<PackageName, TomlIsolation>> {
+    let mut result = HashMap::new();
     if let Some(original_isolation) = me.isolation.as_ref() {
         original_isolation.iter().for_each(|(k, v)| {
-            result.insert(k.to_string(), v.clone());
+            result.insert(k.clone(), v.clone());
         });
     };
     return Ok(result);

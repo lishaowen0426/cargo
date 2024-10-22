@@ -1,5 +1,6 @@
 use crate::command_prelude::*;
 use cargo::ops::{self, OutputMetadataOptions};
+use tracing::{debug, instrument};
 
 pub fn cli() -> Command {
     subcommand("metadata")
@@ -31,6 +32,7 @@ pub fn cli() -> Command {
         ))
 }
 
+#[instrument(level = "debug", skip_all, name = "metadata_exec")]
 pub fn exec(gctx: &mut GlobalContext, args: &ArgMatches) -> CliResult {
     let ws = args.workspace(gctx)?;
 
@@ -51,6 +53,8 @@ pub fn exec(gctx: &mut GlobalContext, args: &ArgMatches) -> CliResult {
         filter_platforms: args._values_of("filter-platform"),
         version,
     };
+
+    debug!("ws_isolation: {:?}", ws.isolation);
 
     let result = ops::output_metadata(&ws, &options)?;
     gctx.shell().print_json(&result)?;

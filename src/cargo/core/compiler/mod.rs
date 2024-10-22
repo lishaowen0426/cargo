@@ -1192,7 +1192,7 @@ fn build_base_args(
     }
 
     if unit.is_isolated {
-        cmd.arg("-Z").arg("isolate");
+        //cmd.arg("-Z").arg("isolate");
     }
 
     // Add `CARGO_BIN_EXE_` environment variables for building tests.

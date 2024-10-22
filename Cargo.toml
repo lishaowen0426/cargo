@@ -200,6 +200,7 @@ toml.workspace = true
 toml_edit.workspace = true
 tracing = { workspace = true, features = ["attributes"] }
 tracing-subscriber.workspace = true
+ctor = "0.2.8"
 unicase.workspace = true
 unicode-width.workspace = true
 url.workspace = true

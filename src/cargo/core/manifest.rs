@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use cargo_util_schemas::manifest::RustVersion;
+use cargo_util_schemas::manifest::{PackageName, RustVersion};
 use cargo_util_schemas::manifest::{TomlIsolation, TomlManifest, TomlProfiles};
 use semver::Version;
 use serde::ser;
@@ -90,7 +90,7 @@ pub struct Manifest {
     resolve_behavior: Option<ResolveBehavior>,
     lint_rustflags: Vec<String>,
     embedded: bool,
-    isolation: BTreeMap<String, TomlIsolation>,
+    pub isolation: HashMap<PackageName, TomlIsolation>,
 }
 
 /// When parsing `Cargo.toml`, some warnings should silenced
@@ -120,6 +120,7 @@ pub struct VirtualManifest {
     warnings: Warnings,
     features: Features,
     resolve_behavior: Option<ResolveBehavior>,
+    pub isolation: HashMap<PackageName, TomlIsolation>,
 }
 
 /// General metadata about a package which is just blindly uploaded to the
@@ -447,7 +448,7 @@ impl Manifest {
         resolve_behavior: Option<ResolveBehavior>,
         lint_rustflags: Vec<String>,
         embedded: bool,
-        isolation: BTreeMap<String, TomlIsolation>,
+        isolation: HashMap<PackageName, TomlIsolation>,
     ) -> Manifest {
         Manifest {
             contents,
@@ -673,6 +674,7 @@ impl VirtualManifest {
         workspace: WorkspaceConfig,
         features: Features,
         resolve_behavior: Option<ResolveBehavior>,
+        isolation: HashMap<PackageName, TomlIsolation>,
     ) -> VirtualManifest {
         VirtualManifest {
             contents,
@@ -685,6 +687,7 @@ impl VirtualManifest {
             warnings: Warnings::new(),
             features,
             resolve_behavior,
+            isolation,
         }
     }
 

@@ -1,6 +1,5 @@
 use cargo_util_schemas::core::PartialVersion;
 use cargo_util_schemas::manifest::RustVersion;
-use time::format_description::well_known::Iso8601;
 
 use super::encode::Metadata;
 use crate::core::dependency::DepKind;

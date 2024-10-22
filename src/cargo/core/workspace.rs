@@ -35,8 +35,8 @@ use crate::util::{
 };
 use cargo_util::paths;
 use cargo_util::paths::normalize_path;
-use cargo_util_schemas::manifest;
 use cargo_util_schemas::manifest::RustVersion;
+use cargo_util_schemas::manifest::{self, PackageName, TomlIsolation};
 use cargo_util_schemas::manifest::{TomlDependency, TomlProfiles};
 use pathdiff::diff_paths;
 
@@ -113,14 +113,17 @@ pub struct Workspace<'gctx> {
 
     /// Local overlay configuration. See [`crate::sources::overlay`].
     local_overlays: HashMap<SourceId, PathBuf>,
+
+    //isolated crates
+    pub isolation: HashMap<PackageName, TomlIsolation>,
 }
 
 // Separate structure for tracking loaded packages (to avoid loading anything
 // twice), and this is separate to help appease the borrow checker.
 #[derive(Debug)]
 struct Packages<'gctx> {
-    gctx: &'gctx GlobalContext,
-    packages: HashMap<PathBuf, MaybePackage>,
+    pub gctx: &'gctx GlobalContext,
+    pub packages: HashMap<PathBuf, MaybePackage>,
 }
 
 #[derive(Debug)]
@@ -213,10 +216,34 @@ impl<'gctx> Workspace<'gctx> {
             ws.root_manifest = ws.find_root(manifest_path)?;
         }
 
+        {
+            //we only honour the isolation specified in the root manifest
+            let root = ws.root_manifest().to_path_buf();
+            let pkg = ws.packages.load(&root).expect("cannot load root manifest");
+            let mut isolation_map: HashMap<PackageName, TomlIsolation> = HashMap::new();
+            let manifest_isolation = match pkg {
+                MaybePackage::Package(p) => &p.manifest().isolation,
+                MaybePackage::Virtual(vp) => &vp.isolation,
+            };
+            debug!("isolation:");
+            for (p, t) in manifest_isolation {
+                isolation_map.insert(p.clone(), t.clone());
+                debug!("{:?}, {:?}", p, t);
+            }
+
+            ws.isolation = isolation_map;
+        }
+
         ws.custom_metadata = ws
             .load_workspace_config()?
             .and_then(|cfg| cfg.custom_metadata);
         ws.find_members()?;
+        debug!("ws_packages:");
+        for (k, v) in &ws.packages.packages {
+            debug!(path=?k, package=?v);
+        }
+
+        debug!("ws_members:{:?}", ws.members);
         ws.set_resolve_behavior()?;
         ws.validate()?;
         Ok(ws)
@@ -243,6 +270,7 @@ impl<'gctx> Workspace<'gctx> {
             resolve_honors_rust_version: false,
             custom_metadata: None,
             local_overlays: HashMap::new(),
+            isolation: HashMap::new(),
         }
     }
 
@@ -709,7 +737,7 @@ impl<'gctx> Workspace<'gctx> {
     /// verifies that those are all valid packages to point to. Otherwise, this
     /// will transitively follow all `path` dependencies looking for members of
     /// the workspace.
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(name = "find_members", skip_all)]
     fn find_members(&mut self) -> CargoResult<()> {
         let Some(workspace_config) = self.load_workspace_config()? else {
             debug!("find_members - only me as a member");
@@ -750,6 +778,10 @@ impl<'gctx> Workspace<'gctx> {
         }
 
         self.find_path_deps(&root_manifest_path, &root_manifest_path, false)?;
+        debug!(
+            "workspace members: {:?} ,member_ids: {:?}",
+            self.members, self.member_ids
+        );
 
         if let Some(default) = default_members_paths {
             for path in default {
@@ -785,6 +817,7 @@ impl<'gctx> Workspace<'gctx> {
         Ok(())
     }
 
+    #[instrument(level = "debug", skip(self))]
     fn find_path_deps(
         &mut self,
         manifest_path: &Path,
@@ -805,6 +838,11 @@ impl<'gctx> Workspace<'gctx> {
         {
             // If `manifest_path` is a path dependency outside of the workspace,
             // don't add it, or any of its dependencies, as a members.
+            debug!(
+                "root:{:?}, self.root_manifest:{:?}",
+                self.find_root(&manifest_path),
+                self.root_manifest
+            );
             return Ok(());
         }
 
@@ -833,6 +871,7 @@ impl<'gctx> Workspace<'gctx> {
                 .map(|(p, n)| (p.join("Cargo.toml"), n))
                 .collect::<Vec<_>>()
         };
+        debug!(?candidates);
         for (path, name) in candidates {
             self.find_path_deps(&path, root_manifest, true)
                 .with_context(|| format!("failed to load manifest for dependency `{}`", name))

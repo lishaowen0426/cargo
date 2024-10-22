@@ -8,6 +8,7 @@ use crate::ops::{self, Packages};
 use crate::util::interning::InternedString;
 use crate::util::CargoResult;
 use cargo_platform::Platform;
+use cargo_util_schemas::manifest::PackageName;
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -52,6 +53,7 @@ pub fn output_metadata(ws: &Workspace<'_>, opt: &OutputMetadataOptions) -> Cargo
         version: VERSION,
         workspace_root: ws.root().to_path_buf(),
         metadata: ws.custom_metadata().cloned(),
+        isolation: ws.isolation.keys().map(|k| k.clone()).collect(),
     })
 }
 
@@ -68,6 +70,7 @@ pub struct ExportInfo {
     version: u32,
     workspace_root: PathBuf,
     metadata: Option<toml::Value>,
+    isolation: Vec<PackageName>,
 }
 
 #[derive(Serialize)]

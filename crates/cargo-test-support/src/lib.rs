@@ -44,6 +44,7 @@
 #![allow(clippy::disallowed_methods)]
 #![allow(clippy::print_stderr)]
 #![allow(clippy::print_stdout)]
+#![allow(unused_imports)]
 
 use std::env;
 use std::ffi::OsStr;
@@ -59,6 +60,8 @@ use std::time::{self, Duration};
 use anyhow::{bail, Result};
 use cargo_util::{is_ci, ProcessError};
 use snapbox::IntoData as _;
+use tracing::debug;
+use tracing::info;
 use url::Url;
 
 use self::paths::CargoPathExt;
