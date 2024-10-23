@@ -76,6 +76,7 @@ use crate::ops;
 use crate::sources::RecursivePathSource;
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::errors::CargoResult;
+use crate::util::interning::InternedString;
 use crate::util::CanonicalUrl;
 use anyhow::Context as _;
 use cargo_util::paths;
@@ -144,6 +145,11 @@ pub fn resolve_ws_with_opts<'gctx>(
     dry_run: bool,
 ) -> CargoResult<WorkspaceResolve<'gctx>> {
     let mut registry = ws.package_registry()?;
+    let ws_isolation = ws
+        .isolation
+        .keys()
+        .map(|p| InternedString::new(p.as_str()))
+        .collect();
     let (resolve, resolved_with_overrides) = if ws.ignore_lock() {
         let add_patches = true;
         let resolve = None;
@@ -156,6 +162,7 @@ pub fn resolve_ws_with_opts<'gctx>(
             None,
             specs,
             add_patches,
+            ws_isolation,
         )?;
         ops::print_lockfile_changes(ws, None, &resolved_with_overrides, &mut registry)?;
         (resolve, resolved_with_overrides)
@@ -201,6 +208,7 @@ pub fn resolve_ws_with_opts<'gctx>(
             None,
             specs,
             add_patches,
+            ws_isolation,
         )?;
         (Some(resolve), resolved_with_overrides)
     } else {
@@ -215,6 +223,7 @@ pub fn resolve_ws_with_opts<'gctx>(
             None,
             specs,
             add_patches,
+            ws_isolation,
         )?;
         // Skipping `print_lockfile_changes` as there are cases where this prints irrelevant
         // information
@@ -275,6 +284,12 @@ fn resolve_with_registry<'gctx>(
 ) -> CargoResult<Resolve> {
     let prev = ops::load_pkg_lockfile(ws)?;
     //let prev = None;
+
+    let ws_isolation = ws
+        .isolation
+        .keys()
+        .map(|p| InternedString::new(p.as_str()))
+        .collect();
     let mut resolve = resolve_with_previous(
         registry,
         ws,
@@ -284,6 +299,7 @@ fn resolve_with_registry<'gctx>(
         None,
         &[],
         true,
+        ws_isolation,
     )?;
 
     let print = if !ws.is_ephemeral() && ws.require_optional_deps() {
@@ -331,6 +347,7 @@ pub fn resolve_with_previous<'gctx>(
     keep_previous: Option<Keep<'_>>,
     specs: &[PackageIdSpec],
     register_patches: bool,
+    isolation: HashSet<InternedString>,
 ) -> CargoResult<Resolve> {
     // We only want one Cargo at a time resolving a crate graph since this can
     // involve a lot of frobbing of the global caches.
@@ -430,6 +447,7 @@ pub fn resolve_with_previous<'gctx>(
         &version_prefs,
         ResolveVersion::with_rust_version(ws.rust_version()),
         Some(ws.gctx()),
+        isolation,
     )?;
 
     let patches = registry.patches().values().flat_map(|v| v.iter());

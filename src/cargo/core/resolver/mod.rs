@@ -130,6 +130,7 @@ pub fn resolve(
     version_prefs: &VersionPreferences,
     resolve_version: ResolveVersion,
     gctx: Option<&GlobalContext>,
+    isolation: HashSet<InternedString>,
 ) -> CargoResult<Resolve> {
     //debug!(summaries = ?summaries, "resolve summaries");
     let first_version = match gctx {
@@ -149,7 +150,6 @@ pub fn resolve(
             registry.registry.block_until_ready()?;
         }
     };
-    let isolations = resolver_ctx.isolation();
 
     let mut cksums = HashMap::new();
     for (summary, _) in resolver_ctx.activations.values() {
@@ -177,7 +177,7 @@ pub fn resolve(
         Vec::new(),
         resolve_version,
         summaries,
-        isolations,
+        isolation,
     );
 
     check_cycles(&resolve)?;
@@ -675,11 +675,6 @@ fn activate(
             candidate
         }
     };
-
-    // add isolation to resolver_ctx
-    candidate.isolations().iter().for_each(|p| {
-        cx.isolation.insert(InternedString::from(p));
-    });
 
     let now = Instant::now();
     let (used_features, deps) = &*registry.build_deps(

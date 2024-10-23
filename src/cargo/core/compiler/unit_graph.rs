@@ -95,7 +95,7 @@ pub fn emit_serialized_unit_graph(
     let ser_units = units
         .iter()
         .map(|(unit, unit_deps)| {
-            debug!(unit=?(unit.pkg.package_id()), "deps: ");
+            debug!(unit=?(unit.pkg.package_id()));
             for (idx, ud) in unit_deps.iter().enumerate() {
                 debug!("dep {}: {:?}", idx, ud.unit.pkg.package_id());
             }

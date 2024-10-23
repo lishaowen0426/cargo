@@ -19,6 +19,7 @@ fn cargo_metadata_simple() {
         .with_stdout_data(
             str![[r#"
 {
+  "isolation": [],
   "metadata": null,
   "packages": [
     {

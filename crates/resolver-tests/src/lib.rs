@@ -164,7 +164,6 @@ pub fn resolve_with_global_context_raw(
         &BTreeMap::new(),
         None::<&String>,
         None::<RustVersion>,
-        HashSet::new(),
     )
     .unwrap();
     let opts = ResolveOpts::everything();
@@ -180,6 +179,7 @@ pub fn resolve_with_global_context_raw(
         &version_prefs,
         ResolveVersion::with_rust_version(None),
         Some(gctx),
+        HashSet::new(),
     );
 
     // The largest test in our suite takes less then 30 sec.
@@ -484,7 +484,6 @@ pub fn pkg_dep<T: ToPkgId>(name: T, dep: Vec<Dependency>) -> Summary {
         &BTreeMap::new(),
         link,
         None::<RustVersion>,
-        HashSet::new(),
     )
     .unwrap()
 }
@@ -513,7 +512,6 @@ pub fn pkg_loc(name: &str, loc: &str) -> Summary {
         &BTreeMap::new(),
         link,
         None::<RustVersion>,
-        HashSet::new(),
     )
     .unwrap()
 }
@@ -528,7 +526,6 @@ pub fn remove_dep(sum: &Summary, ind: usize) -> Summary {
         &BTreeMap::new(),
         sum.links().map(|a| a.as_str()),
         None::<RustVersion>,
-        HashSet::new(),
     )
     .unwrap()
 }

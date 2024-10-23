@@ -17,6 +17,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use cargo_util_schemas::manifest::PackageName;
 use tracing::trace;
 
 use crate::core::compiler::artifact::match_artifacts_kind_with_targets;
@@ -848,7 +849,8 @@ fn new_unit_dep_with_profile(
         _ => None,
     };
     let features = state.activated_features(pkg.package_id(), features_for);
-    let is_isolated = state.resolve().isolations().contains(&pkg.name());
+    let pkg_name = PackageName::new(pkg.name().to_string()).expect("wrong package name");
+    let is_isolated = state.workspace().isolation().contains_key(&pkg_name);
     let unit = state.interner.intern(
         pkg,
         target,
@@ -1001,6 +1003,10 @@ impl<'a, 'gctx> State<'a, 'gctx> {
         } else {
             self.usr_resolve
         }
+    }
+
+    fn workspace(&self) -> &'a Workspace<'gctx> {
+        self.ws
     }
 
     /// Gets `std_features` during building std, otherwise `usr_features`.

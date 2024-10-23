@@ -405,6 +405,13 @@ impl EncodableResolve {
             version = ResolveVersion::V2;
         }
 
+        let mut isolation = HashSet::new();
+        if let Some(v) = self.isolation.as_ref() {
+            v.iter().for_each(|i| {
+                isolation.insert(*i);
+            });
+        }
+
         return Ok(Resolve::new(
             g,
             replacements,
@@ -414,10 +421,7 @@ impl EncodableResolve {
             unused_patches,
             version,
             HashMap::new(),
-            match self.isolation.as_ref() {
-                Some(m) => m.iter().map(|id| id.clone()).collect(),
-                None => HashSet::new(),
-            },
+            isolation,
         ));
 
         fn get_source_id<'a>(

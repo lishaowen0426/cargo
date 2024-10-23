@@ -249,6 +249,10 @@ impl<'gctx> Workspace<'gctx> {
         Ok(ws)
     }
 
+    pub fn isolation(&self) -> &HashMap<PackageName, TomlIsolation> {
+        &self.isolation
+    }
+
     fn new_default(current_manifest: PathBuf, gctx: &'gctx GlobalContext) -> Workspace<'gctx> {
         Workspace {
             gctx,

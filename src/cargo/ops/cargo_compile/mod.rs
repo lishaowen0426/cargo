@@ -34,6 +34,8 @@
 //! [`JobQueue`]: crate::core::compiler::job_queue
 //! [`drain_the_queue`]: crate::core::compiler::job_queue
 //! ["Cargo Target"]: https://doc.rust-lang.org/nightly/cargo/reference/cargo-targets.html
+
+#![allow(unused_imports)]
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use std::sync::Arc;
@@ -55,6 +57,8 @@ use crate::ops::resolve::WorkspaceResolve;
 use crate::util::context::GlobalContext;
 use crate::util::interning::InternedString;
 use crate::util::{CargoResult, StableHasher};
+use std::ops::Deref;
+use tracing::{debug, info};
 
 mod compile_filter;
 pub use compile_filter::{CompileFilter, FilterRule, LibRule};
@@ -198,7 +202,7 @@ pub fn print<'a>(
 ///
 /// For how it works and what data it collects,
 /// please see the [module-level documentation](self).
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(level = "info", skip_all)]
 pub fn create_bcx<'a, 'gctx>(
     ws: &'a Workspace<'gctx>,
     options: &'a CompileOptions,
@@ -243,6 +247,7 @@ pub fn create_bcx<'a, 'gctx>(
     let mut target_data = RustcTargetData::new(ws, &build_config.requested_kinds)?;
 
     let specs = spec.to_package_id_specs(ws)?;
+    debug!("packages to be built: {:?}", specs);
     let has_dev_units = {
         // Rustdoc itself doesn't need dev-dependencies. But to scrape examples from packages in the
         // workspace, if any of those packages need dev-dependencies, then we need include dev-dependencies
@@ -422,6 +427,27 @@ pub fn create_bcx<'a, 'gctx>(
         interner,
     )?;
 
+    {
+        //debug
+        info!("unit graph:");
+        for (k, v) in unit_graph.iter() {
+            info!(
+                "paranet unit: {:?}, isolate: {}",
+                k.deref().pkg.name(),
+                k.deref().is_isolated
+            );
+
+            info!("deps: ");
+            for ud in v.iter() {
+                info!(
+                    "unit: {:?}, isolate: {}",
+                    ud.unit.deref().pkg.name(),
+                    ud.unit.deref().is_isolated
+                );
+            }
+        }
+    }
+
     // TODO: In theory, Cargo should also dedupe the roots, but I'm uncertain
     // what heuristics to use in that case.
     if matches!(build_config.mode, CompileMode::Doc { deps: true, .. }) {
@@ -471,10 +497,52 @@ pub fn create_bcx<'a, 'gctx>(
             // `--document-private-items`, so the warning isn't useful.
             args.push("-Arustdoc::private-intra-doc-links".into());
         }
+
         extra_compiler_args
             .entry(unit.clone())
             .or_default()
             .extend(args);
+    }
+
+    for (unit, _) in unit_graph
+        .iter()
+        .filter(|(unit, _)| unit.target.is_lib() || unit.target.is_bin())
+    {
+        info!("target:{:?}", unit.target);
+        info!("name:{:?}", unit.pkg.name());
+        info!("is isolate:{}", unit.is_isolated);
+        if unit.target.is_bin() && unit.is_isolated {
+            panic!("bin target cannot be isolated");
+        }
+
+        let mut args = vec![];
+
+        if unit.target.is_bin() {
+            let mut to_isolate = String::new();
+            ws.isolation.keys().enumerate().for_each(|(idx, p)| {
+                if idx == 0 {
+                    to_isolate.push_str(p.as_str());
+                } else {
+                    to_isolate.push_str(format!(",{}", p.as_str()).as_str());
+                }
+            });
+            info!("bin, to_isolate: {}", to_isolate);
+            args.push(format!("-Zisolate-crate={}", to_isolate));
+        }
+
+        if unit.is_isolated {
+            args.push("-Zisolate".into());
+        }
+
+        extra_compiler_args
+            .entry(unit.clone())
+            .or_default()
+            .extend(args);
+    }
+
+    info!("extra_compiler_args:");
+    for (k, v) in &extra_compiler_args {
+        info!("unit {}, arg:{:?}", k.pkg.name(), v);
     }
 
     if honor_rust_version.unwrap_or(true) {

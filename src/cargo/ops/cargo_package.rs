@@ -18,6 +18,7 @@ use crate::sources::{PathSource, SourceConfigMap, CRATES_IO_REGISTRY};
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::context::JobsConfig;
 use crate::util::errors::CargoResult;
+use crate::util::interning::InternedString;
 use crate::util::toml::prepare_for_publish;
 use crate::util::{
     self, human_readable_bytes, restricted_names, FileLock, Filesystem, GlobalContext, Graph,
@@ -637,6 +638,12 @@ fn build_lock(
 
     let mut tmp_ws = Workspace::ephemeral(publish_pkg.clone(), ws.gctx(), None, true)?;
 
+    let ws_isolation = ws
+        .isolation
+        .keys()
+        .map(|p| InternedString::new(p.as_str()))
+        .collect();
+
     // The local registry is an overlay used for simulating workspace packages
     // that are supposed to be in the published registry, but that aren't there
     // yet.
@@ -657,6 +664,7 @@ fn build_lock(
         None,
         &[],
         true,
+        ws_isolation,
     )?;
 
     let pkg_set = ops::get_resolved_packages(&new_resolve, tmp_reg)?;

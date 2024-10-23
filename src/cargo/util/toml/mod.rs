@@ -1500,7 +1500,6 @@ fn to_real_manifest(
                 .collect(),
             normalized_package.links.as_deref(),
             rust_version.clone(),
-            isolation.keys().map(|p| p.to_string()).collect(),
         );
         // editon2024 stops exposing implicit features, which will strip weak optional dependencies from `dependencies`,
         // need to check whether `dep_name` is stripped as unused dependency

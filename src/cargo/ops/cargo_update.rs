@@ -9,6 +9,7 @@ use crate::ops;
 use crate::sources::source::QueryKind;
 use crate::util::cache_lock::CacheLockMode;
 use crate::util::context::GlobalContext;
+use crate::util::interning::InternedString;
 use crate::util::toml_mut::dependency::{MaybeWorkspace, Source};
 use crate::util::toml_mut::manifest::LocalManifest;
 use crate::util::toml_mut::upgrade::upgrade_requirement;
@@ -33,6 +34,11 @@ pub struct UpdateOptions<'a> {
 }
 
 pub fn generate_lockfile(ws: &Workspace<'_>) -> CargoResult<()> {
+    let ws_isolation = ws
+        .isolation
+        .keys()
+        .map(|p| InternedString::new(p.as_str()))
+        .collect();
     let mut registry = ws.package_registry()?;
     let previous_resolve = None;
     let mut resolve = ops::resolve_with_previous(
@@ -44,6 +50,7 @@ pub fn generate_lockfile(ws: &Workspace<'_>) -> CargoResult<()> {
         None,
         &[],
         true,
+        ws_isolation,
     )?;
     ops::write_pkg_lockfile(ws, &mut resolve)?;
     print_lockfile_changes(ws, previous_resolve, &resolve, &mut registry)?;
@@ -58,6 +65,12 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
     if ws.members().count() == 0 {
         anyhow::bail!("you can't generate a lockfile for an empty workspace.")
     }
+
+    let ws_isolation: HashSet<InternedString> = ws
+        .isolation
+        .keys()
+        .map(|p| InternedString::new(p.as_str()))
+        .collect();
 
     // Updates often require a lot of modifications to the registry, so ensure
     // that we're synchronized against other Cargos.
@@ -84,6 +97,7 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
                         None,
                         &[],
                         true,
+                        ws_isolation.clone(),
                     )?
                 }
             }
@@ -177,6 +191,7 @@ pub fn update_lockfile(ws: &Workspace<'_>, opts: &UpdateOptions<'_>) -> CargoRes
         Some(&keep),
         &[],
         true,
+        ws_isolation.clone(),
     )?;
 
     print_lockfile_updates(

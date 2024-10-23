@@ -2,6 +2,8 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 
+use cargo_util_schemas::manifest::PackageName;
+
 use crate::core::compiler::rustdoc::RustdocScrapeExamples;
 use crate::core::compiler::unit_dependencies::IsArtifact;
 use crate::core::compiler::{CompileKind, CompileMode, Unit};
@@ -98,7 +100,9 @@ impl<'a> UnitGenerator<'a, '_> {
             _ => initial_target_mode,
         };
 
-        let is_isolated = self.resolve.isolations().contains(&pkg.name());
+        let pkg_name = PackageName::new(pkg.name().to_string()).expect("pkg with wrong name");
+
+        let is_isolated = self.ws.isolation().contains_key(&pkg_name);
 
         let is_local = pkg.package_id().source_id().is_path();
 
